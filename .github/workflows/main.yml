@@ -1,0 +1,60 @@
+# .github/workflows/daily_update.yml
+
+# 工作流的名称
+name: Daily CMC to Pinecone Sync
+
+# 触发工作流的事件
+on:
+  # 允许手动触发
+  workflow_dispatch:
+  
+  # 设置定时任务：使用 cron 语法
+  # 下面的表达式表示在每天的 UTC 时间 3:00 执行 (对应北京时间上午 11:00)
+  # 您可以根据需求修改时间
+  schedule:
+    - cron: '0 3 * * *'
+
+# 定义工作流中的任务
+jobs:
+  # 任务的 ID
+  sync_new_tokens:
+    # 任务运行的虚拟环境
+    runs-on: ubuntu-latest
+
+    # 任务的步骤
+    steps:
+      # 第一步：检出代码
+      # 这会将你的仓库代码下载到虚拟环境中
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 第二步：设置 Python 环境
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11' # 指定你希望使用的 Python 版本
+
+      # 第三步：安装项目依赖
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 第四步：执行每日更新脚本
+      # 关键：通过 `env` 字段将我们设置的 Secrets 注入到脚本的环境变量中
+      - name: Run daily sync script
+        env:
+          CMC_API_KEY: ${{ secrets.CMC_API_KEY }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+        run: python daily_update.py
+
+      # 第五步：如果快照文件有变动，则提交并推送回仓库
+      # 这一步至关重要，它能保存每日更新后的状态
+      - name: Commit and push if ucids_snapshot.json changed
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add ucids_snapshot.json
+          # 如果文件有变动，`git commit` 会成功，否则会失败，我们利用这一点
+          git diff --staged --quiet || git commit -m "Update ucids_snapshot.json"
+          git push
