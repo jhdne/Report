@@ -33,7 +33,7 @@ EMBEDDING_MODEL_DIMENSION = 1024
 
 PINECONE_CONFIG = {
     "api_key": os.getenv("PINECONE_API_KEY"),
-    "index_name": "cmc-crypto-tokens",
+    "index_name": "coindata",
     "metric": "cosine",
     # PodSpec 用于指定云和区域。请根据您的 Pinecone 项目环境修改
     # ServerlessSpec 仅在特定 AWS 区域可用
